@@ -8,8 +8,7 @@ __pycache__/
 venv/
 env/
 ENV/
-*.env
-.env/
+.env
 
 # Django specific
 *.log
