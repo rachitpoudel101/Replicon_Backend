@@ -27,11 +27,15 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from core.urls.user_urls import urlpatterns as users_patterns
+from core.urls.urls_membership import urlpatterns as membership_patterns
+from core.urls.urls_workout import urlpatterns as workout_patterns
 
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
     path("", include(users_patterns)),
+    path("", include(membership_patterns)),
+    path("", include(workout_patterns)),
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
