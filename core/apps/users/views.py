@@ -17,21 +17,39 @@ class UserViewSet(viewsets.ModelViewSet):
         """Create a new user with proper validation"""
         data = request.data.copy()
 
-        # Handle password hashing
-        if "password" in data:
-            password = data.pop("password")
-        else:
+        # Check for basic required fields
+        required_fields = ['username', 'email', 'first_name', 'last_name', 'password', 'role']
+        missing_fields = []
+        
+        for field in required_fields:
+            if field not in data or not data[field]:
+                missing_fields.append(field)
+        
+        # Check role-specific required fields
+        role = data.get('role')
+        if role in ['trainer', 'member']:
+            additional_required_fields = ['age', 'weight', 'height', 'phone', 'bio', 'gender']
+            for field in additional_required_fields:
+                if field not in data or not data[field]:
+                    missing_fields.append(field)
+            
+            # Check for profile_image
+            if 'profile_image' not in request.FILES:
+                missing_fields.append('profile_image')
+        
+        if missing_fields:
             return Response(
-                {"error": "Password is required"},
+                {"error": f"Required fields missing: {', '.join(missing_fields)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Validate data using serializer
+        # Validate data using serializer (with password included)
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
         # Create user manually with hashed password
         validated_data = serializer.validated_data
+        password = validated_data.pop("password")
         user = User(**validated_data)
         user.set_password(password)
         user.save()
