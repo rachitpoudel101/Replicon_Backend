@@ -10,7 +10,7 @@ class User(AbstractUser):
 
     class RolesChoices(models.TextChoices):
         ADMIN = "admin"
-        TRAINNER = "trainner"
+        TRAINER = "trainer"
         MEMBER = "member"
 
     role = models.CharField(max_length=50, choices=RolesChoices.choices)
