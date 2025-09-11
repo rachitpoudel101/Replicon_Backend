@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     # "corsheaders",
     "debug_toolbar",
     "rest_framework",
-    'django_extensions',
+    "django_extensions",
     "rest_framework_simplejwt",
     # "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",

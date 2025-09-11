@@ -18,25 +18,39 @@ class UserViewSet(viewsets.ModelViewSet):
         data = request.data.copy()
 
         # Check for basic required fields
-        required_fields = ['username', 'email', 'first_name', 'last_name', 'password', 'role']
+        required_fields = [
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "password",
+            "role",
+        ]
         missing_fields = []
-        
+
         for field in required_fields:
             if field not in data or not data[field]:
                 missing_fields.append(field)
-        
+
         # Check role-specific required fields
-        role = data.get('role')
-        if role in ['trainer', 'member']:
-            additional_required_fields = ['age', 'weight', 'height', 'phone', 'bio', 'gender']
+        role = data.get("role")
+        if role in ["trainer", "member"]:
+            additional_required_fields = [
+                "age",
+                "weight",
+                "height",
+                "phone",
+                "bio",
+                "gender",
+            ]
             for field in additional_required_fields:
                 if field not in data or not data[field]:
                     missing_fields.append(field)
-            
+
             # Check for profile_image
-            if 'profile_image' not in request.FILES:
-                missing_fields.append('profile_image')
-        
+            if "profile_image" not in request.FILES:
+                missing_fields.append("profile_image")
+
         if missing_fields:
             return Response(
                 {"error": f"Required fields missing: {', '.join(missing_fields)}"},
