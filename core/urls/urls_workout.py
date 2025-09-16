@@ -7,7 +7,6 @@ from core.apps.workout.views import (
     WorkoutPlanExerciseViewSet,
     WorkoutLogViewSet,
     MemberProgressViewSet,
-    NutritionPlanViewSet,
     WorkoutSessionViewSet,
 )
 
@@ -23,7 +22,6 @@ router.register(
 )
 router.register(r"workout-logs", WorkoutLogViewSet, basename="workoutlog")
 router.register(r"member-progress", MemberProgressViewSet, basename="memberprogress")
-router.register(r"nutrition-plans", NutritionPlanViewSet, basename="nutritionplan")
 router.register(r"workout-sessions", WorkoutSessionViewSet, basename="workoutsession")
 
 # URL patterns

@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "core.apps.users",
     "core.apps.workout",
     "core.apps.membership",
+    "core.apps.diet",
 ]
 
 MIDDLEWARE = [
