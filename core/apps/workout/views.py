@@ -40,7 +40,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
     permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer]
 
     def get_queryset(self):
-        return Exercise.objects.filter(is_active=True)
+        return Exercise.objects.filter(is_active=True).select_related()
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -55,12 +55,17 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
     permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer | IsMember]
 
     def get_queryset(self):
-        if self.request.user.role == "admin":
-            return WorkoutPlan.objects.filter(is_active=True)
-        elif self.request.user.role == "trainer":
-            return WorkoutPlan.objects.filter(trainer=self.request.user, is_active=True)
+        user = self.request.user
+        if user.role == "admin":
+            return WorkoutPlan.objects.filter(is_active=True).select_related()
+        elif user.role == "trainer":
+            return WorkoutPlan.objects.filter(
+                trainer=user, is_active=True
+            ).select_related()
         else:
-            return WorkoutPlan.objects.filter(member=self.request.user, is_active=True)
+            return WorkoutPlan.objects.filter(
+                member=user, is_active=True
+            ).select_related()
 
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
@@ -84,8 +89,10 @@ class WorkoutPlanExerciseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         workout_plan_id = self.request.query_params.get("workout_plan_id")
         if workout_plan_id:
-            return WorkoutPlanExercise.objects.filter(workout_plan_id=workout_plan_id)
-        return WorkoutPlanExercise.objects.all()
+            return WorkoutPlanExercise.objects.filter(
+                workout_plan_id=workout_plan_id
+            ).select_related()
+        return WorkoutPlanExercise.objects.all().select_related()
 
 
 # WorkoutLog ViewSet
@@ -94,15 +101,16 @@ class WorkoutLogViewSet(viewsets.ModelViewSet):
     permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer | IsMember]
 
     def get_queryset(self):
-        if self.request.user.role == "admin":
-            return WorkoutLog.objects.all()
-        elif self.request.user.role == "trainer":
+        user = self.request.user
+        if user.role == "admin":
+            return WorkoutLog.objects.all().select_related()
+        elif user.role == "trainer":
             member_ids = TrainerMember.objects.filter(
-                trainer=self.request.user, is_active=True, is_deleted=False
+                trainer=user, is_active=True, is_deleted=False
             ).values_list("member_id", flat=True)
-            return WorkoutLog.objects.filter(member_id__in=member_ids)
+            return WorkoutLog.objects.filter(member_id__in=member_ids).select_related()
         else:
-            return WorkoutLog.objects.filter(member=self.request.user)
+            return WorkoutLog.objects.filter(member=user).select_related()
 
 
 # MemberProgress ViewSet
@@ -111,15 +119,18 @@ class MemberProgressViewSet(viewsets.ModelViewSet):
     permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer | IsMember]
 
     def get_queryset(self):
-        if self.request.user.role == "admin":
-            return MemberProgress.objects.all()
-        elif self.request.user.role == "trainer":
+        user = self.request.user
+        if user.role == "admin":
+            return MemberProgress.objects.all().select_related()
+        elif user.role == "trainer":
             member_ids = TrainerMember.objects.filter(
-                trainer=self.request.user, is_active=True, is_deleted=False
+                trainer=user, is_active=True, is_deleted=False
             ).values_list("member_id", flat=True)
-            return MemberProgress.objects.filter(member_id__in=member_ids)
+            return MemberProgress.objects.filter(
+                member_id__in=member_ids
+            ).select_related()
         else:
-            return MemberProgress.objects.filter(member=self.request.user)
+            return MemberProgress.objects.filter(member=user).select_related()
 
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
@@ -135,15 +146,18 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer | IsMember]
 
     def get_queryset(self):
-        if self.request.user.role == "admin":
-            return WorkoutSession.objects.all()
-        elif self.request.user.role == "trainer":
+        user = self.request.user
+        if user.role == "admin":
+            return WorkoutSession.objects.all().select_related()
+        elif user.role == "trainer":
             member_ids = TrainerMember.objects.filter(
-                trainer=self.request.user, is_active=True, is_deleted=False
+                trainer=user, is_active=True, is_deleted=False
             ).values_list("member_id", flat=True)
-            return WorkoutSession.objects.filter(member_id__in=member_ids)
+            return WorkoutSession.objects.filter(
+                member_id__in=member_ids
+            ).select_related()
         else:
-            return WorkoutSession.objects.filter(member=self.request.user)
+            return WorkoutSession.objects.filter(member=user).select_related()
 
 
 # BMIRecommendation ViewSet
@@ -189,29 +203,33 @@ class BMIRecommendationViewSet(viewsets.ViewSet):
         if category == "Underweight":
             workout_plans = WorkoutPlan.objects.filter(
                 Q(goal="muscle_gain"), is_active=True
-            )
+            ).select_related()
             exercises = Exercise.objects.filter(
                 Q(category="strength_training"), is_active=True
-            )
+            ).select_related()
             nutrition_plans = NutritionPlan.objects.filter(
                 Q(calories__gte=2500), is_active=True
-            )
+            ).select_related()
         elif category == "Normal weight":
             workout_plans = WorkoutPlan.objects.filter(
                 Q(goal="general_fitness"), is_active=True
-            )
-            exercises = Exercise.objects.filter(Q(category="full_body"), is_active=True)
+            ).select_related()
+            exercises = Exercise.objects.filter(
+                Q(category="full_body"), is_active=True
+            ).select_related()
             nutrition_plans = NutritionPlan.objects.filter(
                 Q(calories__range=(2000, 2500)), is_active=True
-            )
+            ).select_related()
         elif category in ["Overweight", "Obese"]:
             workout_plans = WorkoutPlan.objects.filter(
                 Q(goal="general_fitness") | Q(goal="fat_loss"), is_active=True
-            )
-            exercises = Exercise.objects.filter(Q(category="cardio"), is_active=True)
+            ).select_related()
+            exercises = Exercise.objects.filter(
+                Q(category="cardio"), is_active=True
+            ).select_related()
             nutrition_plans = NutritionPlan.objects.filter(
                 Q(calories__lte=2000), is_active=True
-            )
+            ).select_related()
 
         return Response(
             {
