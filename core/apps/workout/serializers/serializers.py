@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from core.apps.workout.models import (
-    TrainerMember,
     WorkoutPlan,
     Exercise,
     WorkoutPlanExercise,
@@ -11,42 +10,6 @@ from core.apps.workout.models import (
 )
 
 User = get_user_model()
-
-
-class TrainerMemberSerializer(serializers.ModelSerializer):
-    trainer_name = serializers.CharField(source="trainer.username", read_only=True)
-    member_name = serializers.CharField(source="member.username", read_only=True)
-
-    class Meta:
-        model = TrainerMember
-        fields = [
-            "id",
-            "trainer",
-            "trainer_name",
-            "member",
-            "member_name",
-            "assigned_date",
-            "is_active",
-            "notes",
-            "is_deleted",
-        ]
-        read_only_fields = ["assigned_date"]
-
-    def validate(self, data):
-        if data["trainer"] == data["member"]:
-            raise serializers.ValidationError(
-                "Trainer and member cannot be the same person"
-            )
-
-        # Check if trainer has role 'trainer'
-        if data["trainer"].role != "trainer":
-            raise serializers.ValidationError("Selected user is not a trainer")
-
-        # Check if member has role 'member'
-        if data["member"].role != "member":
-            raise serializers.ValidationError("Selected user is not a member")
-
-        return data
 
 
 class ExerciseSerializer(serializers.ModelSerializer):
