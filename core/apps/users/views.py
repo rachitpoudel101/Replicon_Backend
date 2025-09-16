@@ -1,15 +1,18 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from core.apps.users.permissions.permissisons import IsAdmin, IsTrainer
+from core.apps.users.permissions.permissisons import IsSuperAdmin, IsAdmin, IsTrainer
 from core.apps.users.models import TrainerMember, User
-from core.apps.users.serializers.serializers import TrainerMemberSerializer, UserSerializer
+from core.apps.users.serializers.serializers import (
+    TrainerMemberSerializer,
+    UserSerializer,
+)
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.filter(is_deleted=False)  # Only show non-deleted users
     serializer_class = UserSerializer
-    permission_classes = [IsAdmin, IsTrainer]
+    permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer]
 
     def get_queryset(self):
         """Override to filter out deleted users by default"""

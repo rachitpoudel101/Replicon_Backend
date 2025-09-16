@@ -33,28 +33,28 @@ class NutritionPlanSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_date"]
 
     def validate_calories(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Calories must be greater than 0")
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Calories cannot be negative")
         return value
 
-    def validate_protein_grams(self, value):
-        if value < 0:
+    def validate_protein(self, value):
+        if value is not None and value < 0:
             raise serializers.ValidationError("Protein cannot be negative")
         return value
 
-    def validate_carbs_grams(self, value):
-        if value < 0:
-            raise serializers.ValidationError("Carbs cannot be negative")
+    def validate_carbohydrates(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Carbohydrates cannot be negative")
         return value
 
-    def validate_fat_grams(self, value):
-        if value < 0:
-            raise serializers.ValidationError("Fat cannot be negative")
+    def validate_fats(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Fats cannot be negative")
         return value
 
     def validate_name(self, value):
         if len(value.strip()) < 3:
             raise serializers.ValidationError(
-                "Plan name must be at least 3 characters long"
+                "Nutrition plan name must be at least 3 characters long"
             )
         return value.strip()

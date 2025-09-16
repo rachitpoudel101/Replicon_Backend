@@ -2,9 +2,6 @@ from django.db import models
 from core.apps.users.models import User
 
 
-
-
-
 class WorkoutPlan(models.Model):
     GOAL_CHOICES = [
         ("fat_loss", "Fat Loss"),
