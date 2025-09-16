@@ -55,3 +55,39 @@ class User(AbstractUser):
     is_super = models.BooleanField(
         default=False, help_text="Whether this user has super admin privileges"
     )
+
+
+class TrainerMember(models.Model):
+    class Meta:
+        db_table = "trainer_members"
+        unique_together = ("trainer", "member")
+
+    trainer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="trainer_members",
+        limit_choices_to={"role": "trainer"},
+        help_text="Select the trainer for this member assignment",
+    )
+    member = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="member_trainer",
+        limit_choices_to={"role": "member"},
+        help_text="Select the member to be assigned to this trainer",
+    )
+    assigned_date = models.DateField(
+        auto_now_add=True, help_text="Date when the member was assigned to the trainer"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this trainer-member relationship is currently active",
+    )
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Additional notes about this trainer-member assignment",
+    )
+    is_deleted = models.BooleanField(
+        default=False, help_text="Soft delete flag for this assignment"
+    )

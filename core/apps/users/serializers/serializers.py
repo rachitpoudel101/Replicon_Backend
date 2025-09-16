@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.apps.users.models import User
+from core.apps.users.models import User,TrainerMember
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -75,3 +75,42 @@ class UserSerializer(serializers.ModelSerializer):
         if value is not None and (value < 1 or value > 150):
             raise serializers.ValidationError("Age must be between 1 and 150.")
         return value
+
+
+
+
+
+class TrainerMemberSerializer(serializers.ModelSerializer):
+    trainer_name = serializers.CharField(source="trainer.username", read_only=True)
+    member_name = serializers.CharField(source="member.username", read_only=True)
+
+    class Meta:
+        model = TrainerMember
+        fields = [
+            "id",
+            "trainer",
+            "trainer_name",
+            "member",
+            "member_name",
+            "assigned_date",
+            "is_active",
+            "notes",
+            "is_deleted",
+        ]
+        read_only_fields = ["assigned_date"]
+
+    def validate(self, data):
+        if data["trainer"] == data["member"]:
+            raise serializers.ValidationError(
+                "Trainer and member cannot be the same person"
+            )
+
+        # Check if trainer has role 'trainer'
+        if data["trainer"].role != "trainer":
+            raise serializers.ValidationError("Selected user is not a trainer")
+
+        # Check if member has role 'member'
+        if data["member"].role != "member":
+            raise serializers.ValidationError("Selected user is not a member")
+
+        return data

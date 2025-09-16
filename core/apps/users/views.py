@@ -2,8 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from core.apps.users.permissions.permissisons import IsAdmin, IsTrainer
-from core.apps.users.models import User
-from core.apps.users.serializers.serializers import UserSerializer
+from core.apps.users.models import TrainerMember, User
+from core.apps.users.serializers.serializers import TrainerMemberSerializer, UserSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -181,3 +181,28 @@ class UserViewSet(viewsets.ModelViewSet):
                 {"error": "User not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+
+# TrainerMember ViewSet
+class TrainerMemberViewSet(viewsets.ModelViewSet):
+    serializer_class = TrainerMemberSerializer
+    permission_classes = [IsAdmin | IsTrainer]
+
+    def get_queryset(self):
+        if self.request.user.role == "admin":
+            return TrainerMember.objects.filter(is_deleted=False)
+        elif self.request.user.role == "trainer":
+            return TrainerMember.objects.filter(
+                trainer=self.request.user, is_deleted=False
+            )
+        else:
+            return TrainerMember.objects.filter(
+                member=self.request.user, is_deleted=False
+            )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_deleted = True
+        instance.is_active = False
+        instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)

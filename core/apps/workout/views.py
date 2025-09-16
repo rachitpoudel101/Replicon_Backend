@@ -3,9 +3,9 @@ from rest_framework.response import Response
 
 # from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
+from core.apps.users.models import TrainerMember
 from core.apps.users.permissions.permissisons import IsAdmin, IsTrainer, IsMember
 from core.apps.workout.models import (
-    TrainerMember,
     WorkoutPlan,
     Exercise,
     WorkoutPlanExercise,
@@ -14,7 +14,6 @@ from core.apps.workout.models import (
     WorkoutSession,
 )
 from core.apps.workout.serializers.serializers import (
-    TrainerMemberSerializer,
     WorkoutPlanSerializer,
     ExerciseSerializer,
     WorkoutPlanExerciseSerializer,
@@ -24,31 +23,6 @@ from core.apps.workout.serializers.serializers import (
 )
 
 User = get_user_model()
-
-
-# TrainerMember ViewSet
-class TrainerMemberViewSet(viewsets.ModelViewSet):
-    serializer_class = TrainerMemberSerializer
-    permission_classes = [IsAdmin | IsTrainer]
-
-    def get_queryset(self):
-        if self.request.user.role == "admin":
-            return TrainerMember.objects.filter(is_deleted=False)
-        elif self.request.user.role == "trainer":
-            return TrainerMember.objects.filter(
-                trainer=self.request.user, is_deleted=False
-            )
-        else:
-            return TrainerMember.objects.filter(
-                member=self.request.user, is_deleted=False
-            )
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.is_deleted = True
-        instance.is_active = False
-        instance.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # Exercise ViewSet
