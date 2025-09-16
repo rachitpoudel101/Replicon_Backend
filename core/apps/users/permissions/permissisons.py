@@ -11,7 +11,7 @@ class IsSuperAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         user = request.user
         # Only allow authenticated superusers or staff
-        return bool(user and user.is_authenticated and (user.is_superuser))
+        return bool(user and user.is_authenticated and (user.is_super))
 
 
 class IsAdmin(permissions.BasePermission):

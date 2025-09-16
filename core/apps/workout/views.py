@@ -1,10 +1,17 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
+from rest_framework.decorators import action
+from django.db.models import Q
 
 # from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from core.apps.users.models import TrainerMember
-from core.apps.users.permissions.permissisons import IsAdmin, IsTrainer, IsMember
+from core.apps.users.permissions.permissisons import (
+    IsSuperAdmin,
+    IsAdmin,
+    IsTrainer,
+    IsMember,
+)
 from core.apps.workout.models import (
     WorkoutPlan,
     Exercise,
@@ -21,6 +28,8 @@ from core.apps.workout.serializers.serializers import (
     MemberProgressSerializer,
     WorkoutSessionSerializer,
 )
+from core.apps.diet.models import NutritionPlan
+from core.apps.diet.serializers.serializers import NutritionPlanSerializer
 
 User = get_user_model()
 
@@ -28,7 +37,7 @@ User = get_user_model()
 # Exercise ViewSet
 class ExerciseViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseSerializer
-    permission_classes = [IsAdmin | IsTrainer]
+    permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer]
 
     def get_queryset(self):
         return Exercise.objects.filter(is_active=True)
@@ -43,7 +52,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
 # WorkoutPlan ViewSet
 class WorkoutPlanViewSet(viewsets.ModelViewSet):
     serializer_class = WorkoutPlanSerializer
-    permission_classes = [IsAdmin | IsTrainer | IsMember]
+    permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer | IsMember]
 
     def get_queryset(self):
         if self.request.user.role == "admin":
@@ -55,7 +64,7 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
-            permission_classes = [IsAdmin | IsTrainer]
+            permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer]
         else:
             permission_classes = [IsAdmin | IsTrainer | IsMember]
         return [permission() for permission in permission_classes]
@@ -70,7 +79,7 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
 # WorkoutPlanExercise ViewSet
 class WorkoutPlanExerciseViewSet(viewsets.ModelViewSet):
     serializer_class = WorkoutPlanExerciseSerializer
-    permission_classes = [IsAdmin | IsTrainer]
+    permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer]
 
     def get_queryset(self):
         workout_plan_id = self.request.query_params.get("workout_plan_id")
@@ -82,7 +91,7 @@ class WorkoutPlanExerciseViewSet(viewsets.ModelViewSet):
 # WorkoutLog ViewSet
 class WorkoutLogViewSet(viewsets.ModelViewSet):
     serializer_class = WorkoutLogSerializer
-    permission_classes = [IsAdmin | IsTrainer | IsMember]
+    permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer | IsMember]
 
     def get_queryset(self):
         if self.request.user.role == "admin":
@@ -99,7 +108,7 @@ class WorkoutLogViewSet(viewsets.ModelViewSet):
 # MemberProgress ViewSet
 class MemberProgressViewSet(viewsets.ModelViewSet):
     serializer_class = MemberProgressSerializer
-    permission_classes = [IsAdmin | IsTrainer | IsMember]
+    permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer | IsMember]
 
     def get_queryset(self):
         if self.request.user.role == "admin":
@@ -114,19 +123,16 @@ class MemberProgressViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
-            permission_classes = [IsAdmin | IsTrainer]
+            permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer]
         else:
-            permission_classes = [IsAdmin | IsTrainer | IsMember]
+            permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer]
         return [permission() for permission in permission_classes]
-
-
-# NutritionPlan ViewSet
 
 
 # WorkoutSession ViewSet
 class WorkoutSessionViewSet(viewsets.ModelViewSet):
     serializer_class = WorkoutSessionSerializer
-    permission_classes = [IsAdmin | IsTrainer | IsMember]
+    permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer | IsMember]
 
     def get_queryset(self):
         if self.request.user.role == "admin":
@@ -138,3 +144,83 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             return WorkoutSession.objects.filter(member_id__in=member_ids)
         else:
             return WorkoutSession.objects.filter(member=self.request.user)
+
+
+# BMIRecommendation ViewSet
+class BMIRecommendationViewSet(viewsets.ViewSet):
+    permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer | IsMember]
+
+    @action(detail=False, methods=["post"], url_path="bmi")
+    def bmi_recommendation(self, request):
+        weight = request.data.get("weight")
+        height = request.data.get("height")
+
+        if not weight or not height:
+            return Response(
+                {"error": "Weight and height are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            weight = float(weight)
+            height = float(height)
+        except ValueError:
+            return Response(
+                {"error": "Weight and height must be numbers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if weight <= 0 or height <= 0:
+            return Response(
+                {"error": "Weight and height must be positive numbers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        bmi = weight / (height**2)
+        if bmi < 18.5:
+            category = "Underweight"
+        elif 18.5 <= bmi < 24.9:
+            category = "Normal weight"
+        elif 25 <= bmi < 29.9:
+            category = "Overweight"
+        else:
+            category = "Obese"
+
+        if category == "Underweight":
+            workout_plans = WorkoutPlan.objects.filter(
+                Q(goal="muscle_gain"), is_active=True
+            )
+            exercises = Exercise.objects.filter(
+                Q(category="strength_training"), is_active=True
+            )
+            nutrition_plans = NutritionPlan.objects.filter(
+                Q(calories__gte=2500), is_active=True
+            )
+        elif category == "Normal weight":
+            workout_plans = WorkoutPlan.objects.filter(
+                Q(goal="general_fitness"), is_active=True
+            )
+            exercises = Exercise.objects.filter(Q(category="full_body"), is_active=True)
+            nutrition_plans = NutritionPlan.objects.filter(
+                Q(calories__range=(2000, 2500)), is_active=True
+            )
+        elif category in ["Overweight", "Obese"]:
+            workout_plans = WorkoutPlan.objects.filter(
+                Q(goal="general_fitness") | Q(goal="fat_loss"), is_active=True
+            )
+            exercises = Exercise.objects.filter(Q(category="cardio"), is_active=True)
+            nutrition_plans = NutritionPlan.objects.filter(
+                Q(calories__lte=2000), is_active=True
+            )
+
+        return Response(
+            {
+                "bmi": bmi,
+                "category": category,
+                "workout_plans": WorkoutPlanSerializer(workout_plans, many=True).data,
+                "exercises": ExerciseSerializer(exercises, many=True).data,
+                "nutrition_plans": NutritionPlanSerializer(
+                    nutrition_plans, many=True
+                ).data,
+            }
+        )

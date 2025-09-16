@@ -8,6 +8,8 @@ from core.apps.workout.models import (
     MemberProgress,
     WorkoutSession,
 )
+from core.apps.diet.models import NutritionPlan
+from core.apps.diet.serializers.serializers import NutritionPlanSerializer
 
 User = get_user_model()
 
@@ -254,3 +256,36 @@ class WorkoutSessionSerializer(serializers.ModelSerializer):
             if value < 1 or value > 5:
                 raise serializers.ValidationError("Rating must be between 1 and 5")
         return value
+
+
+class NutritionPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NutritionPlan
+        fields = "__all__"
+
+    def validate_calories(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Calories cannot be negative")
+        return value
+
+    def validate_protein(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Protein cannot be negative")
+        return value
+
+    def validate_carbohydrates(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Carbohydrates cannot be negative")
+        return value
+
+    def validate_fats(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Fats cannot be negative")
+        return value
+
+    def validate_name(self, value):
+        if len(value.strip()) < 3:
+            raise serializers.ValidationError(
+                "Nutrition plan name must be at least 3 characters long"
+            )
+        return value.strip()

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.apps.users.models import User,TrainerMember
+from core.apps.users.models import User, TrainerMember
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -75,9 +75,6 @@ class UserSerializer(serializers.ModelSerializer):
         if value is not None and (value < 1 or value > 150):
             raise serializers.ValidationError("Age must be between 1 and 150.")
         return value
-
-
-
 
 
 class TrainerMemberSerializer(serializers.ModelSerializer):
