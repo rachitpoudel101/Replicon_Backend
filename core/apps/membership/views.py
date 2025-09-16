@@ -1,7 +1,8 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
 from django.contrib.auth import get_user_model
+
 from core.apps.users.permissions.permissisons import (
     IsSuperAdmin,
     IsAdmin,
@@ -19,33 +20,35 @@ class MembershipViewSet(viewsets.ModelViewSet):
     permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer | IsMember]
 
     def get_queryset(self):
+        """Return optimized queryset depending on user role."""
         user = self.request.user
+        role = getattr(user, "role", None)
 
-        # Superusers can access all memberships
-        if user.is_super:
-            return Membership.objects.all()
+        # Optimize queryset with select_related for member (avoid N+1 queries)
+        base_qs = Membership.objects.select_related("member")
 
-        # Admins can access all memberships
-        if user.role == "admin":
-            return Membership.objects.all()
+        # SuperAdmin or Admin → full access
+        if getattr(user, "is_super", False) or role == "admin":
+            return base_qs
 
-        # Trainers can access memberships of their assigned members
-        elif user.role == "trainer":
+        # Trainer → only memberships of assigned members
+        if role == "trainer":
             from core.apps.workout.models import TrainerMember
 
             member_ids = TrainerMember.objects.filter(
                 trainer=user, is_active=True, is_deleted=False
             ).values_list("member_id", flat=True)
-            return Membership.objects.filter(member_id__in=member_ids)
+            return base_qs.filter(member_id__in=member_ids)
 
-        # Members can only access their own memberships
-        elif user.role == "member":
-            return Membership.objects.filter(member=user)
+        # Member → only own memberships
+        if role == "member":
+            return base_qs.filter(member=user)
 
-        # Default to no access
+        # No access by default
         return Membership.objects.none()
 
     def get_permissions(self):
+        """Restrict create/update/delete to Admins/Trainers."""
         if self.action in ["create", "update", "partial_update", "destroy"]:
             permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer]
         else:
@@ -56,13 +59,10 @@ class MembershipViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Check if member already has an active membership
         member = serializer.validated_data["member"]
-        existing_membership = Membership.objects.filter(
-            member=member, is_active=True
-        ).exists()
 
-        if existing_membership:
+        # Optimized existence check (only fetch ID)
+        if Membership.objects.filter(member=member, is_active=True).only("id").exists():
             return Response(
                 {"error": "Member already has an active membership"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -80,15 +80,14 @@ class MembershipViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
 
-        # If trying to activate membership, check if member has another active one
-        if "is_active" in request.data and request.data["is_active"]:
-            existing_active = (
+        # If activating membership → ensure no other active one exists
+        if request.data.get("is_active", False):
+            if (
                 Membership.objects.filter(member=instance.member, is_active=True)
                 .exclude(id=instance.id)
+                .only("id")
                 .exists()
-            )
-
-            if existing_active:
+            ):
                 return Response(
                     {"error": "Member already has another active membership"},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -98,7 +97,9 @@ class MembershipViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
+        """Soft-delete: deactivate instead of removing record."""
         instance = self.get_object()
-        instance.is_active = False
-        instance.save()
+        if instance.is_active:
+            instance.is_active = False
+            instance.save(update_fields=["is_active"])
         return Response(status=status.HTTP_204_NO_CONTENT)
