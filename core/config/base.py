@@ -28,7 +28,7 @@ SECRET_KEY = "django-insecure-)mk%_d275g$&%obar+9l&xlo^cxouau_tjudwu%iv$20r)@30y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -40,12 +40,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # "corsheaders",
+    "corsheaders",
     "debug_toolbar",
     "rest_framework",
     "django_extensions",
     "rest_framework_simplejwt",
-    # "rest_framework_simplejwt.token_blacklist",
+    "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "core.apps.users",
     "core.apps.workout",
@@ -56,7 +56,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    # "corsheaders.middleware.CorsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -68,10 +68,9 @@ MIDDLEWARE = [
 ROOT_URLCONF = "core.urls"
 AUTH_USER_MODEL = "users.User"
 
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:5173",
-#     "http://10.2.2.78:5173",
-# ]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
 
 INTERNAL_IPS = [
     "127.0.0.1",

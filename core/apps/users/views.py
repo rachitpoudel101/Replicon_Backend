@@ -1,9 +1,15 @@
+import traceback
 from rest_framework import viewsets, status
 from rest_framework.response import Response
+from rest_framework.generics import ListAPIView
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework.decorators import action
 from core.apps.users.permissions.permissisons import IsSuperAdmin, IsAdmin, IsTrainer
 from core.apps.users.models import TrainerMember, User
 from core.apps.users.serializers.serializers import (
+    LogoutSerializer,
+    SelfAPISerilizer,
     TrainerMemberSerializer,
     UserSerializer,
 )
@@ -209,3 +215,56 @@ class TrainerMemberViewSet(viewsets.ModelViewSet):
         instance.is_active = False
         instance.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SelfDetails(ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = SelfAPISerilizer
+
+    def list(self, request, *args, **kwargs):
+        try:
+            user = self.queryset.filter(id=request.user.id).first()
+            if not user:
+                return Response(
+                    {"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+            serializer = self.serializer_class(user, context={"request": request})
+            data = serializer.data
+
+            return Response(data)
+        except Exception as e:
+            traceback.print_exc()
+            return Response(
+                {"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class LogoutView(APIView):
+    def post(self, request):
+        serializer = LogoutSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        refresh_token = serializer.validated_data["refresh"]
+
+        try:
+            token = RefreshToken(refresh_token)
+            try:
+                token.blacklist()
+                return Response(
+                    {"detail": "Token blacklisted"},
+                    status=status.HTTP_205_RESET_CONTENT,
+                )
+            except AttributeError:
+                return Response(
+                    {"detail": "Blacklisting not supported. Check your configuration."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except TokenError:
+            return Response(
+                {"detail": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
