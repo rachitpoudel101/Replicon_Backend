@@ -111,3 +111,17 @@ class TrainerMemberSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Selected user is not a member")
 
         return data
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField(required=True)
+
+
+class SelfAPISerilizer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "role",
+        ]
