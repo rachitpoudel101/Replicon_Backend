@@ -16,13 +16,22 @@ from core.apps.users.serializers.serializers import (
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.filter(is_deleted=False)  # Only show non-deleted users
     serializer_class = UserSerializer
     permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer]
 
     def get_queryset(self):
-        """Override to filter out deleted users by default"""
-        return User.objects.filter(is_deleted=False)
+        user = self.request.user
+        if hasattr(user, "role"):
+            if user.role == "superuser":
+                return User.objects.filter(role="admin", is_deleted=False)
+            elif user.role == "trainer":
+                return User.objects.filter(role="member", is_deleted=False)
+            elif user.role == "member":
+                return User.objects.none()
+
+        queryset = User.objects.filter(is_super=False, is_deleted=False)
+
+        return queryset
 
     def create(self, request, *args, **kwargs):
         """Create a new user with proper validation"""
@@ -85,24 +94,17 @@ class UserViewSet(viewsets.ModelViewSet):
         )
 
     def update(self, request, *args, **kwargs):
-        """Update user with proper validation"""
-        partial = kwargs.pop("partial", False)
+        """Update user with proper validation (all required fields must be present, password not required)"""
         instance = self.get_object()
         data = request.data.copy()
 
-        # Handle password separately
-        password = data.pop("password", None)
-
-        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer = self.get_serializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
 
         # Update user manually
         validated_data = serializer.validated_data
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-
-        if password:
-            instance.set_password(password)
 
         instance.save()
 
