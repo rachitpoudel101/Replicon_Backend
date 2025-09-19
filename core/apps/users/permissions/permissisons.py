@@ -10,20 +10,22 @@ class IsSuperAdmin(permissions.BasePermission):
 
     def has_permission(self, request, view):
         user = request.user
-        # Only allow authenticated superusers or staff
-        return bool(user and user.is_authenticated and (user.is_super))
+        return bool(user and user.is_authenticated and getattr(user, "is_super", False))
 
 
 class IsAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
-        return request.user.role == "admin"
+        user = request.user
+        return user.is_authenticated and getattr(user, "role", None) == "admin"
 
 
 class IsTrainer(permissions.BasePermission):
     def has_permission(self, request, view):
-        return request.user.role == "trainer"
+        user = request.user
+        return user.is_authenticated and getattr(user, "role", None) == "trainer"
 
 
 class IsMember(permissions.BasePermission):
     def has_permission(self, request, view):
-        return request.user.role == "member"
+        user = request.user
+        return user.is_authenticated and getattr(user, "role", None) == "member"

@@ -197,19 +197,36 @@ class UserViewSet(viewsets.ModelViewSet):
 # TrainerMember ViewSet
 class TrainerMemberViewSet(viewsets.ModelViewSet):
     serializer_class = TrainerMemberSerializer
-    permission_classes = [IsAdmin | IsTrainer]
+    # default class (kept for readability) — we'll return instances in get_permissions
+    permission_classes = [IsAdmin | IsSuperAdmin]
+
+    def get_permissions(self):
+        """
+        Read-only actions (list, retrieve) are allowed for trainers as well as admins/superadmins.
+        Unsafe actions (create, update, partial_update, destroy, etc.) are restricted to admin/superadmin.
+        """
+        # Combined permission objects using the project's permission classes (they support OR-composition)
+        if getattr(self, "action", None) in ["list", "retrieve"]:
+            permission_classes = [IsAdmin | IsSuperAdmin | IsTrainer]
+        else:
+            permission_classes = [IsAdmin | IsSuperAdmin]
+
+        # Instantiate permission classes (DRF expects instances here)
+        return [perm() for perm in permission_classes]
 
     def get_queryset(self):
-        if self.request.user.role == "admin":
-            return TrainerMember.objects.filter(is_deleted=False)
-        elif self.request.user.role == "trainer":
+        # Trainers can only see members they are assigned to
+        if getattr(self.request.user, "role", None) == "trainer":
             return TrainerMember.objects.filter(
                 trainer=self.request.user, is_deleted=False
             )
-        else:
-            return TrainerMember.objects.filter(
-                member=self.request.user, is_deleted=False
-            )
+
+        # Admins and superadmins can see all non-deleted trainer-member mappings
+        if getattr(self.request.user, "role", None) in ["admin", "superadmin"]:
+            return TrainerMember.objects.filter(is_deleted=False)
+
+        # Members see only their own trainer-member mapping(s)
+        return TrainerMember.objects.filter(member=self.request.user, is_deleted=False)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
