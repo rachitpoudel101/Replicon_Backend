@@ -71,7 +71,7 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
         if self.action in ["create", "update", "partial_update", "destroy"]:
             permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer]
         else:
-            permission_classes = [IsAdmin | IsTrainer | IsMember]
+            permission_classes = [IsSuperAdmin | IsAdmin | IsTrainer | IsMember]
         return [permission() for permission in permission_classes]
 
     def destroy(self, request, *args, **kwargs):

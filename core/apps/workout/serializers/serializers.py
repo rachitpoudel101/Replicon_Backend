@@ -232,7 +232,7 @@ class WorkoutSessionSerializer(serializers.ModelSerializer):
             "start_time",
             "end_time",
             "total_calories_burned",
-            "completed",
+            "status",
             "rating",
             "feedback",
             "created_date",

@@ -271,6 +271,11 @@ class MemberProgress(models.Model):
 class WorkoutSession(models.Model):
     """Complete workout session tracking"""
 
+    STATUS = [
+        ("pending", "Pending"),
+        ("completed", "Completed"),
+    ]
+
     class Meta:
         db_table = "workout_sessions"
 
@@ -296,8 +301,12 @@ class WorkoutSession(models.Model):
     total_calories_burned = models.IntegerField(
         blank=True, null=True, help_text="Total calories burned during the session"
     )
-    completed = models.BooleanField(
-        default=False, help_text="Whether the workout session was completed"
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS,
+        default=False,
+        help_text="Whether the workout session was completed",
     )
     rating = models.IntegerField(
         blank=True, null=True, help_text="Session rating on a scale of 1-5"
